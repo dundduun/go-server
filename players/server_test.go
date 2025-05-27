@@ -31,6 +31,7 @@ func TestGETPlayers(t *testing.T) {
 
 		assertResponseBody(t, response, "20")
 	})
+
 	t.Run("returns Belle's score", func(t *testing.T) {
 		request := newGetScoreRequest("Belle")
 		response := httptest.NewRecorder()
