@@ -1,7 +1,11 @@
 package main
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+)
 
 func main() {
-	http.ListenAndServe(":5000", nil)
+	handler := http.HandlerFunc(PlayerServer)
+	log.Fatal(http.ListenAndServe(":8080", handler))
 }
