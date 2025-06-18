@@ -21,7 +21,7 @@ func (s StubPlayerStore) GetPlayerScore(name string) (int, error) {
 	return score, nil
 }
 
-func TestGETPlayer(t *testing.T) {
+func TestGetPlayer(t *testing.T) {
 	store := StubPlayerStore{
 		map[string]int{
 			"Pepper": 20,
@@ -69,6 +69,49 @@ func TestGETPlayer(t *testing.T) {
 
 		assertStatus(t, response, http.StatusNotFound)
 		assertResponseBody(t, response, "0")
+	})
+}
+
+func TestScoreStoring(t *testing.T) {
+	store := StubPlayerStore{
+		map[string]int{},
+	}
+	server := PlayerServer{store}
+
+	t.Run("returns accepted on post", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/players/Pepper", nil)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response, http.StatusAccepted)
+
+		//request := newGetRequest("Pepper")
+		//response := httptest.NewRecorder()
+		//
+		//server.ServeHTTP(response, request)
+		//
+		//assertStatus(t, response, http.StatusOK)
+		//assertResponseBody(t, response, "20")
+
+		//name := "Pepper"
+		//url := fmt.Sprintf("/players/%s", name)
+		//
+		//want := 30
+		//request, _ := http.NewRequest(http.MethodPost, url, nil)
+		//response := httptest.NewRecorder()
+		//
+		//server.ServeHTTP(response, request)
+		//
+		//got, err := store.GetPlayerScore(name)
+		//
+		//if err != nil {
+		//	t.Fatalf("got unexpected error: %s", err)
+		//}
+		//
+		//if got != want {
+		//	t.Errorf("got score %d, want %d", got, want)
+		//}
 	})
 }
 
