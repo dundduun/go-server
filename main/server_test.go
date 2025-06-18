@@ -16,11 +16,12 @@ func (s StubPlayerStore) GetPlayerScore(name string) int {
 	return score
 }
 
-func TestGetPlayer(t *testing.T) {
+func TestGETPlayer(t *testing.T) {
 	store := StubPlayerStore{
 		map[string]int{
 			"Pepper": 20,
 			"Kittie": 5,
+			"Aldi":   0,
 		},
 	}
 	server := PlayerServer{store}
@@ -30,6 +31,8 @@ func TestGetPlayer(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
+
+		assertStatus(t, response, http.StatusOK)
 		assertResponseBody(t, response, "20")
 	})
 
@@ -38,7 +41,19 @@ func TestGetPlayer(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
+
+		assertStatus(t, response, http.StatusOK)
 		assertResponseBody(t, response, "5")
+	})
+
+	t.Run("unknown player", func(t *testing.T) {
+		request := newGetRequest("WHO")
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response, http.StatusNotFound)
+		assertResponseBody(t, response, "0")
 	})
 }
 
@@ -54,5 +69,13 @@ func assertResponseBody(t testing.TB, response *httptest.ResponseRecorder, want 
 
 	if response.Body.String() != want {
 		t.Errorf("got %q want %q", response.Body.String(), want)
+	}
+}
+
+func assertStatus(t testing.TB, response *httptest.ResponseRecorder, want int) {
+	t.Helper()
+
+	if response.Code != want {
+		t.Errorf("got status %d want %d", response.Code, want)
 	}
 }
