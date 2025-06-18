@@ -7,8 +7,8 @@ import (
 
 type StubStore struct{}
 
-func (s StubStore) GetPlayerScore(name string) int {
-	return 13
+func (s StubStore) GetPlayerScore(name string) (int, error) {
+	return 13, nil
 }
 
 func main() {

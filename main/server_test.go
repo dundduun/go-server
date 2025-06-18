@@ -11,9 +11,14 @@ type StubPlayerStore struct {
 	scores map[string]int
 }
 
-func (s StubPlayerStore) GetPlayerScore(name string) int {
-	score := s.scores[name]
-	return score
+func (s StubPlayerStore) GetPlayerScore(name string) (int, error) {
+	score, ok := s.scores[name]
+
+	if !ok {
+		return 0, ErrPlayerNotFound
+	}
+
+	return score, nil
 }
 
 func TestGETPlayer(t *testing.T) {
@@ -44,6 +49,16 @@ func TestGETPlayer(t *testing.T) {
 
 		assertStatus(t, response, http.StatusOK)
 		assertResponseBody(t, response, "5")
+	})
+
+	t.Run("aldi's zero score", func(t *testing.T) {
+		request := newGetRequest("Aldi")
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response, http.StatusOK)
+		assertResponseBody(t, response, "0")
 	})
 
 	t.Run("unknown player", func(t *testing.T) {
