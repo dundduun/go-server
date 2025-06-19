@@ -7,13 +7,15 @@ import (
 
 type StubStore struct{}
 
-func (s StubStore) GetPlayerScore(name string) (int, error) {
+func (s *StubStore) GetPlayerScore(name string) (int, error) {
 	return 13, nil
 }
 
-func main() {
-	store := StubStore{}
+func (s *StubStore) RecordWin(name string) {}
 
-	handler := PlayerServer{store}
+func main() {
+	store := &StubStore{}
+
+	handler := &PlayerServer{store}
 	log.Fatal(http.ListenAndServe(":8080", handler))
 }

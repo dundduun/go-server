@@ -8,10 +8,11 @@ import (
 )
 
 type StubPlayerStore struct {
-	scores map[string]int
+	scores   map[string]int
+	winCalls []string
 }
 
-func (s StubPlayerStore) GetPlayerScore(name string) (int, error) {
+func (s *StubPlayerStore) GetPlayerScore(name string) (int, error) {
 	score, ok := s.scores[name]
 
 	if !ok {
@@ -21,15 +22,20 @@ func (s StubPlayerStore) GetPlayerScore(name string) (int, error) {
 	return score, nil
 }
 
+func (s *StubPlayerStore) RecordWin(name string) {
+	s.winCalls = append(s.winCalls, name)
+}
+
 func TestGetPlayer(t *testing.T) {
-	store := StubPlayerStore{
+	store := &StubPlayerStore{
 		map[string]int{
 			"Pepper": 20,
 			"Kittie": 5,
 			"Aldi":   0,
 		},
+		nil,
 	}
-	server := PlayerServer{store}
+	server := &PlayerServer{store}
 
 	t.Run("pepper's score", func(t *testing.T) {
 		request := newGetRequest("Pepper")
@@ -73,46 +79,34 @@ func TestGetPlayer(t *testing.T) {
 }
 
 func TestScoreStoring(t *testing.T) {
-	store := StubPlayerStore{
+	store := &StubPlayerStore{
 		map[string]int{},
+		nil,
 	}
-	server := PlayerServer{store}
+	server := &PlayerServer{store}
 
-	t.Run("returns accepted on post", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodPost, "/players/Pepper", nil)
+	t.Run("records wins", func(t *testing.T) {
+		player := "Pepper"
+		request := newPostRequest(player)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response, http.StatusAccepted)
 
-		//request := newGetRequest("Pepper")
-		//response := httptest.NewRecorder()
-		//
-		//server.ServeHTTP(response, request)
-		//
-		//assertStatus(t, response, http.StatusOK)
-		//assertResponseBody(t, response, "20")
+		if len(store.winCalls) != 1 {
+			t.Fatalf("got %d RecordWin calls want %d", len(store.winCalls), 1)
+		}
 
-		//name := "Pepper"
-		//url := fmt.Sprintf("/players/%s", name)
-		//
-		//want := 30
-		//request, _ := http.NewRequest(http.MethodPost, url, nil)
-		//response := httptest.NewRecorder()
-		//
-		//server.ServeHTTP(response, request)
-		//
-		//got, err := store.GetPlayerScore(name)
-		//
-		//if err != nil {
-		//	t.Fatalf("got unexpected error: %s", err)
-		//}
-		//
-		//if got != want {
-		//	t.Errorf("got score %d, want %d", got, want)
-		//}
+		if store.winCalls[0] != player {
+			t.Errorf("win recorded for player %q but want %q", store.winCalls[0], player)
+		}
 	})
+}
+
+func newPostRequest(name string) *http.Request {
+	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/players/%s", name), nil)
+	return req
 }
 
 func newGetRequest(name string) *http.Request {
