@@ -1,21 +1,12 @@
 package main
 
 import (
+	"app.com/players"
 	"log"
 	"net/http"
 )
 
-type StubStore struct{}
-
-func (s *StubStore) GetPlayerScore(name string) (int, error) {
-	return 13, nil
-}
-
-func (s *StubStore) RecordWin(name string) {}
-
 func main() {
-	store := &StubStore{}
-
-	handler := &PlayerServer{store}
+	handler := &players.PlayerServer{Store: players.NewInMemoryPlayerStore()}
 	log.Fatal(http.ListenAndServe(":8080", handler))
 }

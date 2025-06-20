@@ -1,4 +1,4 @@
-package main
+package players
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ type PlayerStore interface {
 }
 
 type PlayerServer struct {
-	store PlayerStore
+	Store PlayerStore
 }
 
 func (p *PlayerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -30,12 +30,12 @@ func (p *PlayerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *PlayerServer) processWin(w http.ResponseWriter, player string) {
-	p.store.RecordWin(player)
+	p.Store.RecordWin(player)
 	w.WriteHeader(http.StatusAccepted)
 }
 
 func (p *PlayerServer) showScore(w http.ResponseWriter, player string) {
-	score, err := p.store.GetPlayerScore(player)
+	score, err := p.Store.GetPlayerScore(player)
 
 	if err != nil {
 		if errors.Is(err, ErrPlayerNotFound) {

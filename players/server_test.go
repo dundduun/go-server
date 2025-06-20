@@ -1,4 +1,4 @@
-package main
+package players
 
 import (
 	"fmt"
@@ -38,7 +38,7 @@ func TestGetPlayer(t *testing.T) {
 	server := &PlayerServer{store}
 
 	t.Run("pepper's score", func(t *testing.T) {
-		request := newGetRequest("Pepper")
+		request := newGetScoreRequest("Pepper")
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -48,7 +48,7 @@ func TestGetPlayer(t *testing.T) {
 	})
 
 	t.Run("kittie's score", func(t *testing.T) {
-		request := newGetRequest("Kittie")
+		request := newGetScoreRequest("Kittie")
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -58,7 +58,7 @@ func TestGetPlayer(t *testing.T) {
 	})
 
 	t.Run("aldi's zero score", func(t *testing.T) {
-		request := newGetRequest("Aldi")
+		request := newGetScoreRequest("Aldi")
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -68,7 +68,7 @@ func TestGetPlayer(t *testing.T) {
 	})
 
 	t.Run("unknown player", func(t *testing.T) {
-		request := newGetRequest("WHO")
+		request := newGetScoreRequest("WHO")
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -87,7 +87,7 @@ func TestScoreStoring(t *testing.T) {
 
 	t.Run("records wins", func(t *testing.T) {
 		player := "Pepper"
-		request := newPostRequest(player)
+		request := newPostWinRequest(player)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -104,12 +104,12 @@ func TestScoreStoring(t *testing.T) {
 	})
 }
 
-func newPostRequest(name string) *http.Request {
+func newPostWinRequest(name string) *http.Request {
 	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/players/%s", name), nil)
 	return req
 }
 
-func newGetRequest(name string) *http.Request {
+func newGetScoreRequest(name string) *http.Request {
 	url := fmt.Sprintf("/players/%s", name)
 	request, _ := http.NewRequest(http.MethodGet, url, nil)
 
