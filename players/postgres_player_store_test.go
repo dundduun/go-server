@@ -1,12 +1,13 @@
 package players
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/joho/godotenv"
 )
 
-func TestPostgresPlayerStore(t *testing.T) {
+func TestPostgresGetScore(t *testing.T) {
 	envErr := godotenv.Load("../.env")
 	if envErr != nil {
 		t.Fatalf("failed to load env variables: %s", envErr)
@@ -20,24 +21,33 @@ func TestPostgresPlayerStore(t *testing.T) {
 	store := PostgresPlayerStore{conn}
 
 	t.Run("get Pepper's score", func(t *testing.T) {
-		player := "Pepper"
-		want := 2
-
-		got, err := store.GetPlayerScore(player)
+		got, err := store.GetPlayerScore("Pepper")
 
 		assertNoErr(t, err)
-		assertPlayerScore(t, got, want)
+		assertPlayerScore(t, got, 2)
 	})
 
 	t.Run("get Kittie's score", func(t *testing.T) {
-		player := "Kittie"
-		want := 20
-
-		got, err := store.GetPlayerScore(player)
+		got, err := store.GetPlayerScore("Kittie")
 
 		assertNoErr(t, err)
-		assertPlayerScore(t, got, want)
+		assertPlayerScore(t, got, 20)
 	})
+
+	t.Run("get Unknown's score", func(t *testing.T) {
+		got, err := store.GetPlayerScore("WHOO")
+
+		assertPlayerScore(t, got, 0)
+		assertErr(t, err, ErrPlayerNotFound)
+	})
+}
+
+func assertPlayerScore(t testing.TB, got, want int) {
+	t.Helper()
+
+	if got != want {
+		t.Errorf("got %d want %d", got, want)
+	}
 }
 
 func assertNoErr(t testing.TB, err error) {
@@ -48,10 +58,10 @@ func assertNoErr(t testing.TB, err error) {
 	}
 }
 
-func assertPlayerScore(t testing.TB, got, want int) {
+func assertErr(t testing.TB, got, want error) {
 	t.Helper()
 
-	if got != want {
-		t.Errorf("got %d want %d", got, want)
+	if !errors.Is(got, want) {
+		t.Errorf("got err %s want %s", got, want)
 	}
 }
