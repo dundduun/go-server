@@ -20,15 +20,15 @@ func TestPostgresGetScore(t *testing.T) {
 
 	store := PostgresPlayerStore{conn}
 
-	t.Run("get Pepper's score", func(t *testing.T) {
-		got, err := store.GetPlayerScore("Pepper")
+	t.Run("get test player 1 score", func(t *testing.T) {
+		got, err := store.GetPlayerScore("test purpose player 1")
 
 		assertNoErr(t, err)
 		assertPlayerScore(t, got, 2)
 	})
 
-	t.Run("get Kittie's score", func(t *testing.T) {
-		got, err := store.GetPlayerScore("Kittie")
+	t.Run("get test player 2 score", func(t *testing.T) {
+		got, err := store.GetPlayerScore("test purpose player 2")
 
 		assertNoErr(t, err)
 		assertPlayerScore(t, got, 20)
