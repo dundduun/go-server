@@ -42,6 +42,32 @@ func TestPostgresGetScore(t *testing.T) {
 	})
 }
 
+func TestPostgresRecordWin(t *testing.T) {
+	envErr := godotenv.Load("../.env")
+	if envErr != nil {
+		t.Fatalf("failed to load env variables: %s", envErr)
+	}
+
+	conn, connErr := ConnectToDB()
+	if connErr != nil {
+		t.Fatalf("unexpected error while connecting to db: %s", connErr)
+	}
+
+	store := PostgresPlayerStore{conn}
+
+	t.Run("update user", func(t *testing.T) {
+		name := "Pepper"
+
+		initialScore, _ := store.GetPlayerScore(name)
+		want := initialScore + 1
+
+		store.RecordWin(name)
+		got, _ := store.GetPlayerScore(name)
+
+		assertPlayerScore(t, got, want)
+	})
+}
+
 func assertPlayerScore(t testing.TB, got, want int) {
 	t.Helper()
 
