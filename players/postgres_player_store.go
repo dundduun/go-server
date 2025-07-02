@@ -13,7 +13,7 @@ type PostgresPlayerStore struct {
 }
 
 func (p PostgresPlayerStore) GetPlayerScore(name string) (int, error) {
-	rows, queryErr := p.Conn.Query(context.Background(), "SELECT score FROM players p"+
+	rows, queryErr := p.Conn.Query(context.Background(), "SELECT s.score FROM players p"+
 		" JOIN scores s ON p.id = s.player_id"+
 		" WHERE p.name = $1"+
 		" LIMIT 1", name)
@@ -43,7 +43,27 @@ func (p PostgresPlayerStore) GetPlayerScore(name string) (int, error) {
 	return scores[0], nil
 }
 
-func (p PostgresPlayerStore) RecordWin(name string) {}
+func (p PostgresPlayerStore) RecordWin(name string) {
+	//p.Conn.Query(context.Background(), "INSERT INTO players (name)"+
+	//	"VALUES ($1)"+
+	//	"ON CONFLICT (name) DO INSERT", name)
+}
+
+//WITH ins_player AS (
+//INSERT INTO players (name)
+//VALUES ('P')
+//ON CONFLICT (name) DO NOTHING
+//RETURNING id
+//),
+//sel_player AS (
+//SELECT id FROM ins_player
+//UNION
+//SELECT id FROM players WHERE name = 'P'
+//)
+//INSERT INTO scores (player_id, score)
+//SELECT id, 1 FROM sel_player
+//ON CONFLICT (player_id) DO UPDATE
+//SET score = scores.score + 1;
 
 var ErrEnvMissing = errors.New("env variables are missing")
 
