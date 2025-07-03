@@ -3,9 +3,9 @@ package players
 import (
 	"context"
 	"errors"
-	"os"
-
+	"fmt"
 	"github.com/jackc/pgx/v5"
+	"os"
 )
 
 type PostgresPlayerStore struct {
@@ -70,8 +70,14 @@ var ErrEnvMissing = errors.New("env variables are missing")
 // ConnectToDB is a function to establish a connection with a DB.
 // Connection data must be provided at .env file, else ErrEnvMissing is thrown.
 func ConnectToDB() (*pgx.Conn, error) {
-	connString := os.Getenv("DB_CONN_STRING")
+	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASS"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_NAME"))
 
+	fmt.Println(connString)
 	if connString == "" {
 		return nil, ErrEnvMissing
 	}
