@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5"
 	"os"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type PostgresPlayerStore struct {
@@ -43,27 +44,34 @@ func (p PostgresPlayerStore) GetPlayerScore(name string) (int, error) {
 	return scores[0], nil
 }
 
-func (p PostgresPlayerStore) RecordWin(name string) {
-	//p.Conn.Query(context.Background(), "INSERT INTO players (name)"+
-	//	"VALUES ($1)"+
-	//	"ON CONFLICT (name) DO INSERT", name)
-}
+// RecordWin creates user for new player and updates score for existing.
+func (p PostgresPlayerStore) RecordWin(name string) error {
+	var err error
 
-//WITH ins_player AS (
-//INSERT INTO players (name)
-//VALUES ('P')
-//ON CONFLICT (name) DO NOTHING
-//RETURNING id
-//),
-//sel_player AS (
-//SELECT id FROM ins_player
-//UNION
-//SELECT id FROM players WHERE name = 'P'
-//)
-//INSERT INTO scores (player_id, score)
-//SELECT id, 1 FROM sel_player
-//ON CONFLICT (player_id) DO UPDATE
-//SET score = scores.score + 1;
+	_, err = p.Conn.Exec(context.Background(), `
+		WITH ins_player AS (
+			INSERT INTO players (name) 
+				VALUES ($1) 
+				ON CONFLICT (name) DO NOTHING
+				RETURNING id
+		), sel_id AS (
+			SELECT id FROM ins_player
+			UNION
+			SELECT id FROM players 
+				WHERE name = $1 
+		)
+		INSERT INTO scores (player_id, score)
+			SELECT id, 1 FROM sel_id
+			ON CONFLICT (player_id) DO UPDATE
+				SET score = scores.score + 1
+	`, name)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 var ErrEnvMissing = errors.New("env variables are missing")
 
@@ -75,9 +83,9 @@ func ConnectToDB() (*pgx.Conn, error) {
 		os.Getenv("DB_PASS"),
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"))
+		os.Getenv("DB_NAME"),
+	)
 
-	fmt.Println(connString)
 	if connString == "" {
 		return nil, ErrEnvMissing
 	}

@@ -9,21 +9,19 @@ import (
 	"github.com/joho/godotenv"
 )
 
-//func setDBUserScore(conn pgx.Conn) {
-//
-//}
-
 type DBPrep struct {
 	conn *pgx.Conn
 	t    testing.TB
 }
 
-func (d DBPrep) paveData(name string, score int) {
+func (p DBPrep) paveData(name string, score int) {
+	p.t.Helper()
+
 	if name == "" {
-		d.t.Fatalf("name can't be an empty string")
+		p.t.Fatalf("name can't be an empty string")
 	}
 
-	_, queryErr := d.conn.Exec(context.Background(),
+	_, queryErr := p.conn.Exec(context.Background(),
 		`WITH ins_player AS (
 				INSERT INTO players (name)
 					VALUES ($1)
@@ -37,7 +35,25 @@ func (d DBPrep) paveData(name string, score int) {
 			INSERT INTO scores (player_id, score)
 				SELECT id, $2 FROM player_id
 				ON CONFLICT (player_id) DO UPDATE SET score = $2`, name, score)
-	assertNoErr(d.t, queryErr)
+	assertNoErr(p.t, queryErr)
+}
+
+func (p DBPrep) deletePlayer(name string) {
+	p.t.Helper()
+
+	var err error
+
+	_, err = p.conn.Exec(context.Background(), `
+			DELETE FROM scores WHERE player_id = (
+				SELECT id FROM players WHERE name = $1
+			);
+		`, name)
+	assertNoErr(p.t, err)
+
+	_, err = p.conn.Exec(context.Background(), `
+			DELETE FROM players WHERE name = $1
+		`, name)
+	assertNoErr(p.t, err)
 }
 
 func TestPostgresGetScore(t *testing.T) {
@@ -54,7 +70,7 @@ func TestPostgresGetScore(t *testing.T) {
 	store := PostgresPlayerStore{conn}
 	prep := DBPrep{conn, t}
 
-	t.Run("get test player 1 score", func(t *testing.T) {
+	t.Run("get Pepper score", func(t *testing.T) {
 		name := "Pepper"
 		initialScore := 2
 
@@ -66,7 +82,7 @@ func TestPostgresGetScore(t *testing.T) {
 		assertPlayerScore(t, got, initialScore)
 	})
 
-	t.Run("get test player 2 score", func(t *testing.T) {
+	t.Run("get Kittie", func(t *testing.T) {
 		name := "Kittie"
 		initialScore := 20
 
@@ -98,18 +114,55 @@ func TestPostgresRecordWin(t *testing.T) {
 	}
 
 	store := PostgresPlayerStore{conn}
+	prep := DBPrep{conn, t}
 
-	t.Run("update user", func(t *testing.T) {
+	t.Run("update Pepper", func(t *testing.T) {
 		name := "Pepper"
+		prep.paveData(name, 1)
 
-		initialScore, _ := store.GetPlayerScore(name)
-		want := initialScore + 1
+		init, getInitErr := store.GetPlayerScore(name)
+		assertNoErr(t, getInitErr)
+		want := init + 1
 
-		store.RecordWin(name)
-		got, getErr := store.GetPlayerScore(name)
+		recordWinErr := store.RecordWin(name)
+		assertNoErr(t, recordWinErr)
 
-		assertNoErr(t, getErr)
+		got, getResultErr := store.GetPlayerScore(name)
+
+		assertNoErr(t, getResultErr)
 		assertPlayerScore(t, got, want)
+	})
+
+	t.Run("update Kittie", func(t *testing.T) {
+		name := "Kittie"
+		prep.paveData(name, 9)
+
+		init, getInitErr := store.GetPlayerScore(name)
+		assertNoErr(t, getInitErr)
+		want := init + 1
+
+		recordWinErr := store.RecordWin(name)
+		assertNoErr(t, recordWinErr)
+
+		got, getResultErr := store.GetPlayerScore(name)
+
+		assertNoErr(t, getResultErr)
+		assertPlayerScore(t, got, want)
+	})
+
+	t.Run("add first win", func(t *testing.T) {
+		name := "a1234"
+		prep.deletePlayer(name)
+
+		_, getInitErr := store.GetPlayerScore(name)
+		assertErr(t, getInitErr, ErrPlayerNotFound)
+
+		recordWinErr := store.RecordWin(name)
+		assertNoErr(t, recordWinErr)
+
+		got, getResultErr := store.GetPlayerScore(name)
+		assertNoErr(t, getResultErr)
+		assertPlayerScore(t, got, 1)
 	})
 }
 
