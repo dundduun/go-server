@@ -18,6 +18,8 @@ func (i *InMemoryPlayerStore) GetPlayerScore(name string) (int, error) {
 	return score, nil
 }
 
-func (i *InMemoryPlayerStore) RecordWin(name string) {
+func (i *InMemoryPlayerStore) RecordWin(name string) error {
 	i.scores[name]++
+
+	return nil
 }

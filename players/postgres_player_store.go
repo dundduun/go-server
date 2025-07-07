@@ -14,10 +14,11 @@ type PostgresPlayerStore struct {
 }
 
 func (p PostgresPlayerStore) GetPlayerScore(name string) (int, error) {
-	rows, queryErr := p.Conn.Query(context.Background(), "SELECT s.score FROM players p"+
-		" JOIN scores s ON p.id = s.player_id"+
-		" WHERE p.name = $1"+
-		" LIMIT 1", name)
+	rows, queryErr := p.Conn.Query(context.Background(), `
+		SELECT s.score FROM players p
+			JOIN scores s ON p.id = s.player_id
+			WHERE p.name = $1
+			LIMIT 1`, name)
 
 	if queryErr != nil {
 		return 0, queryErr
@@ -64,7 +65,7 @@ func (p PostgresPlayerStore) RecordWin(name string) error {
 			SELECT id, 1 FROM sel_id
 			ON CONFLICT (player_id) DO UPDATE
 				SET score = scores.score + 1
-	`, name)
+		`, name)
 
 	if err != nil {
 		return err

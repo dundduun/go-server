@@ -21,20 +21,21 @@ func (p DBPrep) paveData(name string, score int) {
 		p.t.Fatalf("name can't be an empty string")
 	}
 
-	_, queryErr := p.conn.Exec(context.Background(),
-		`WITH ins_player AS (
-				INSERT INTO players (name)
-					VALUES ($1)
-					ON CONFLICT (name) DO NOTHING
-					RETURNING id),
-			player_id AS (
-				SELECT id FROM ins_player
-					UNION
-				SELECT id FROM players WHERE name = $1
-			)
-			INSERT INTO scores (player_id, score)
-				SELECT id, $2 FROM player_id
-				ON CONFLICT (player_id) DO UPDATE SET score = $2`, name, score)
+	_, queryErr := p.conn.Exec(context.Background(), `
+		WITH ins_player AS (
+			INSERT INTO players (name)
+				VALUES ($1)
+				ON CONFLICT (name) DO NOTHING
+				RETURNING id),
+		player_id AS (
+			SELECT id FROM ins_player
+				UNION
+			SELECT id FROM players WHERE name = $1
+		)
+		INSERT INTO scores (player_id, score)
+			SELECT id, $2 FROM player_id
+			ON CONFLICT (player_id) DO UPDATE SET score = $2
+		`, name, score)
 	assertNoErr(p.t, queryErr)
 }
 

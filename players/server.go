@@ -11,7 +11,7 @@ var ErrPlayerNotFound = errors.New("player not found")
 
 type PlayerStore interface {
 	GetPlayerScore(name string) (int, error)
-	RecordWin(name string)
+	RecordWin(name string) error
 }
 
 type PlayerServer struct {
@@ -30,7 +30,13 @@ func (p *PlayerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *PlayerServer) processWin(w http.ResponseWriter, player string) {
-	p.Store.RecordWin(player)
+	err := p.Store.RecordWin(player)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusAccepted)
 }
 
