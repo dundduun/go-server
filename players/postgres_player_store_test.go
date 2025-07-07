@@ -68,7 +68,7 @@ func TestPostgresGetScore(t *testing.T) {
 		t.Fatalf("unexpected error while connecting to db: %s", connErr)
 	}
 
-	store := PostgresPlayerStore{conn}
+	store := PostgresPlayerStore{Conn: conn}
 	prep := DBPrep{conn, t}
 
 	t.Run("get Pepper score", func(t *testing.T) {
@@ -114,7 +114,7 @@ func TestPostgresRecordWin(t *testing.T) {
 		t.Fatalf("unexpected error while connecting to db: %s", connErr)
 	}
 
-	store := PostgresPlayerStore{conn}
+	store := PostgresPlayerStore{Conn: conn}
 	prep := DBPrep{conn, t}
 
 	t.Run("update Pepper", func(t *testing.T) {

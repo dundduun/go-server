@@ -20,8 +20,8 @@ func TestWinRecordingAndRetrieving(t *testing.T) {
 		t.Fatalf("error while connecting to db: %s", err)
 	}
 
-	store := PostgresPlayerStore{conn}
-	svr := PlayerServer{store}
+	store := PostgresPlayerStore{Conn: conn}
+	svr := PlayerServer{&store}
 	prep := DBPrep{conn, t}
 
 	player := "Pepper"

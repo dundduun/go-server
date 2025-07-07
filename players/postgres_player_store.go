@@ -5,15 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/jackc/pgx/v5"
 )
 
 type PostgresPlayerStore struct {
 	Conn *pgx.Conn
+	mu   sync.Mutex
 }
 
-func (p PostgresPlayerStore) GetPlayerScore(name string) (int, error) {
+func (p *PostgresPlayerStore) GetPlayerScore(name string) (int, error) {
+	p.mu.Lock()
+
 	rows, queryErr := p.Conn.Query(context.Background(), `
 		SELECT s.score FROM players p
 			JOIN scores s ON p.id = s.player_id
@@ -23,8 +27,6 @@ func (p PostgresPlayerStore) GetPlayerScore(name string) (int, error) {
 	if queryErr != nil {
 		return 0, queryErr
 	}
-
-	defer rows.Close()
 
 	var scores []int
 	for rows.Next() {
@@ -38,6 +40,9 @@ func (p PostgresPlayerStore) GetPlayerScore(name string) (int, error) {
 		scores = append(scores, score)
 	}
 
+	rows.Close()
+	p.mu.Unlock()
+
 	if len(scores) == 0 {
 		return 0, ErrPlayerNotFound
 	}
@@ -46,8 +51,10 @@ func (p PostgresPlayerStore) GetPlayerScore(name string) (int, error) {
 }
 
 // RecordWin creates user for new player and updates score for existing.
-func (p PostgresPlayerStore) RecordWin(name string) error {
+func (p *PostgresPlayerStore) RecordWin(name string) error {
 	var err error
+
+	p.mu.Lock()
 
 	_, err = p.Conn.Exec(context.Background(), `
 		WITH ins_player AS (
@@ -66,6 +73,8 @@ func (p PostgresPlayerStore) RecordWin(name string) error {
 			ON CONFLICT (player_id) DO UPDATE
 				SET score = scores.score + 1
 		`, name)
+
+	p.mu.Unlock()
 
 	if err != nil {
 		return err
