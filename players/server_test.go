@@ -106,6 +106,20 @@ func TestScoreStoring(t *testing.T) {
 	})
 }
 
+func TestLeague(t *testing.T) {
+	store := StubPlayerStore{}
+	svr := &PlayerServer{&store}
+
+	t.Run("it returns 200", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/league", nil)
+		res := httptest.NewRecorder()
+
+		svr.ServeHTTP(res, req)
+
+		assertStatus(t, res, http.StatusOK)
+	})
+}
+
 func newPostWinRequest(name string) *http.Request {
 	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/players/%s", name), nil)
 	return req
