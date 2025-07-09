@@ -83,6 +83,10 @@ func (p *PostgresPlayerStore) RecordWin(name string) error {
 	return nil
 }
 
+func (p *PostgresPlayerStore) GetLeague() []Player {
+	return []Player{{}}
+}
+
 var ErrEnvMissing = errors.New("env variables are missing")
 
 // ConnectToDB is a function to establish a connection with a DB.

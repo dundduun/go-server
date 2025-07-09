@@ -1,6 +1,7 @@
 package players
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -9,9 +10,15 @@ import (
 
 var ErrPlayerNotFound = errors.New("player not found")
 
+type Player struct {
+	Name  string
+	Score int
+}
+
 type PlayerStore interface {
 	GetPlayerScore(name string) (int, error)
 	RecordWin(name string) error
+	GetLeague() []Player
 }
 
 type PlayerServer struct {
@@ -34,6 +41,8 @@ func NewPlayerServer(store PlayerStore) *PlayerServer {
 }
 
 func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
+	_ = json.NewEncoder(w).Encode(p.Store.GetLeague())
+
 	w.WriteHeader(http.StatusOK)
 }
 
