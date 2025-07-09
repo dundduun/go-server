@@ -23,3 +23,7 @@ func (i *InMemoryPlayerStore) RecordWin(name string) error {
 
 	return nil
 }
+
+func (i *InMemoryPlayerStore) GetLeague() []Player {
+	return []Player{}
+}

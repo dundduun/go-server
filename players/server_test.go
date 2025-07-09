@@ -134,7 +134,7 @@ func TestLeague(t *testing.T) {
 		assertContentType(t, res, "application/json")
 
 		got := getLeagueFromBody(t, res)
-		getLeague(t, got, wantedLeague)
+		assertLeague(t, got, wantedLeague)
 	})
 }
 
@@ -167,7 +167,7 @@ func getLeagueFromBody(t testing.TB, res *httptest.ResponseRecorder) []Player {
 	return got
 }
 
-func getLeague(t testing.TB, got []Player, want []Player) {
+func assertLeague(t testing.TB, got []Player, want []Player) {
 	t.Helper()
 
 	if !reflect.DeepEqual(got, want) {
