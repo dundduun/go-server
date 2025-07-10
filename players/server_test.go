@@ -31,8 +31,8 @@ func (s *StubPlayerStore) RecordWin(name string) error {
 	return nil
 }
 
-func (s *StubPlayerStore) GetLeague() []Player {
-	return s.leagueTable
+func (s *StubPlayerStore) GetLeague() ([]Player, error) {
+	return s.leagueTable, nil
 }
 
 func TestGetPlayer(t *testing.T) {

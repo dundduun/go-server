@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5"
+	"reflect"
 	"testing"
 
 	"github.com/joho/godotenv"
@@ -14,7 +15,7 @@ type DBPrep struct {
 	t    testing.TB
 }
 
-func (p DBPrep) paveData(name string, score int) {
+func (p *DBPrep) insertPlayer(name string, score int) {
 	p.t.Helper()
 
 	if name == "" {
@@ -39,7 +40,7 @@ func (p DBPrep) paveData(name string, score int) {
 	assertNoErr(p.t, queryErr)
 }
 
-func (p DBPrep) deletePlayer(name string) {
+func (p *DBPrep) deletePlayer(name string) {
 	p.t.Helper()
 
 	var err error
@@ -57,17 +58,54 @@ func (p DBPrep) deletePlayer(name string) {
 	assertNoErr(p.t, err)
 }
 
+func (p *DBPrep) truncateTables() {
+	tx, err := p.conn.Begin(context.Background())
+	assertNoErr(p.t, err)
+	defer func(tx pgx.Tx, ctx context.Context) {
+		_ = tx.Rollback(ctx)
+	}(tx, context.Background())
+
+	_, err = tx.Exec(context.Background(), "TRUNCATE TABLE scores CASCADE")
+	assertNoErr(p.t, err)
+
+	_, err = tx.Exec(context.Background(), "TRUNCATE TABLE players CASCADE")
+	assertNoErr(p.t, err)
+
+	err = tx.Commit(context.Background())
+	assertNoErr(p.t, err)
+}
+
+func (p *DBPrep) constructSomeLeague() {
+	tx, err := p.conn.Begin(context.Background())
+	assertNoErr(p.t, err)
+
+	_, err = tx.Exec(context.Background(), "INSERT INTO players (name) VALUES ('Pepper'), ('Kittie')")
+	if err != nil {
+		_ = tx.Rollback(context.Background())
+		p.t.Fatalf("error encountered when inserting players: %s", err)
+	}
+
+	_, err = tx.Exec(context.Background(), `
+		INSERT INTO scores (player_id, score)
+			SELECT id, s.score
+			FROM players p
+			JOIN (VALUES
+		    	('Pepper', 3),
+		    	('Kittie', 20)
+			) AS s(name, score)
+			ON s.name = p.name
+		`)
+	if err != nil {
+		_ = tx.Rollback(context.Background())
+		p.t.Fatalf("error encountered when inserting scores: %s", err)
+	}
+
+	err = tx.Commit(context.Background())
+	assertNoErr(p.t, err)
+}
+
 func TestPostgresGetScore(t *testing.T) {
-	envErr := godotenv.Load("../.env")
-	if envErr != nil {
-		t.Fatalf("failed to load env variables: %s", envErr)
-	}
-
-	conn, connErr := ConnectToDB()
-	if connErr != nil {
-		t.Fatalf("unexpected error while connecting to db: %s", connErr)
-	}
-
+	conn := initDB(t)
 	store := PostgresPlayerStore{Conn: conn}
 	prep := DBPrep{conn, t}
 
@@ -75,7 +113,7 @@ func TestPostgresGetScore(t *testing.T) {
 		name := "Pepper"
 		initialScore := 2
 
-		prep.paveData(name, initialScore)
+		prep.insertPlayer(name, initialScore)
 
 		got, err := store.GetPlayerScore(name)
 
@@ -87,11 +125,11 @@ func TestPostgresGetScore(t *testing.T) {
 		name := "Kittie"
 		initialScore := 20
 
-		prep.paveData(name, initialScore)
+		prep.insertPlayer(name, initialScore)
 
-		got, getPlayerErr := store.GetPlayerScore(name)
+		got, err := store.GetPlayerScore(name)
 
-		assertNoErr(t, getPlayerErr)
+		assertNoErr(t, err)
 		assertPlayerScore(t, got, initialScore)
 	})
 
@@ -104,50 +142,35 @@ func TestPostgresGetScore(t *testing.T) {
 }
 
 func TestPostgresRecordWin(t *testing.T) {
-	envErr := godotenv.Load("../.env")
-	if envErr != nil {
-		t.Fatalf("failed to load env variables: %s", envErr)
-	}
-
-	conn, connErr := ConnectToDB()
-	if connErr != nil {
-		t.Fatalf("unexpected error while connecting to db: %s", connErr)
-	}
-
+	conn := initDB(t)
 	store := PostgresPlayerStore{Conn: conn}
 	prep := DBPrep{conn, t}
 
 	t.Run("update Pepper", func(t *testing.T) {
 		name := "Pepper"
-		prep.paveData(name, 1)
-
-		init, getInitErr := store.GetPlayerScore(name)
-		assertNoErr(t, getInitErr)
+		init := 1
 		want := init + 1
+		prep.insertPlayer(name, init)
 
-		recordWinErr := store.RecordWin(name)
-		assertNoErr(t, recordWinErr)
+		err := store.RecordWin(name)
+		assertNoErr(t, err)
 
-		got, getResultErr := store.GetPlayerScore(name)
-
-		assertNoErr(t, getResultErr)
+		got, err := store.GetPlayerScore(name)
+		assertNoErr(t, err)
 		assertPlayerScore(t, got, want)
 	})
 
 	t.Run("update Kittie", func(t *testing.T) {
 		name := "Kittie"
-		prep.paveData(name, 9)
-
-		init, getInitErr := store.GetPlayerScore(name)
-		assertNoErr(t, getInitErr)
+		init := 9
 		want := init + 1
+		prep.insertPlayer(name, init)
 
-		recordWinErr := store.RecordWin(name)
-		assertNoErr(t, recordWinErr)
+		err := store.RecordWin(name)
+		assertNoErr(t, err)
 
-		got, getResultErr := store.GetPlayerScore(name)
-
-		assertNoErr(t, getResultErr)
+		got, err := store.GetPlayerScore(name)
+		assertNoErr(t, err)
 		assertPlayerScore(t, got, want)
 	})
 
@@ -155,15 +178,49 @@ func TestPostgresRecordWin(t *testing.T) {
 		name := "a1234"
 		prep.deletePlayer(name)
 
-		_, getInitErr := store.GetPlayerScore(name)
-		assertErr(t, getInitErr, ErrPlayerNotFound)
+		_, getPlayerErr := store.GetPlayerScore(name)
+		assertErr(t, getPlayerErr, ErrPlayerNotFound)
 
-		recordWinErr := store.RecordWin(name)
-		assertNoErr(t, recordWinErr)
+		err := store.RecordWin(name)
+		assertNoErr(t, err)
 
-		got, getResultErr := store.GetPlayerScore(name)
-		assertNoErr(t, getResultErr)
+		got, err := store.GetPlayerScore(name)
+		assertNoErr(t, err)
 		assertPlayerScore(t, got, 1)
+	})
+}
+
+func TestPostgresLeague(t *testing.T) {
+	conn := initDB(t)
+	store := PostgresPlayerStore{Conn: conn}
+	prep := DBPrep{conn, t}
+
+	t.Run("with two players", func(t *testing.T) {
+		prep.truncateTables()
+		prep.constructSomeLeague()
+
+		got, err := store.GetLeague()
+		assertNoErr(t, err)
+
+		wantedLeague := []Player{
+			{"Pepper", 3},
+			{"Kittie", 20},
+		}
+		if !reflect.DeepEqual(got, wantedLeague) {
+			t.Errorf("got league %v want %v", got, wantedLeague)
+		}
+	})
+
+	t.Run("with no players", func(t *testing.T) {
+		prep.truncateTables()
+
+		got, err := store.GetLeague()
+		assertNoErr(t, err)
+
+		var wantedLeague []Player = nil
+		if !reflect.DeepEqual(got, wantedLeague) {
+			t.Errorf("got league %v want %v", got, wantedLeague)
+		}
 	})
 }
 
@@ -189,4 +246,16 @@ func assertErr(t testing.TB, got, want error) {
 	if !errors.Is(got, want) {
 		t.Errorf("got err %s want %s", got, want)
 	}
+}
+
+func initDB(t testing.TB) *pgx.Conn {
+	t.Helper()
+
+	envErr := godotenv.Load("../.env")
+	assertNoErr(t, envErr)
+
+	conn, connErr := ConnectToDB()
+	assertNoErr(t, connErr)
+
+	return conn
 }

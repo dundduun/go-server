@@ -83,8 +83,32 @@ func (p *PostgresPlayerStore) RecordWin(name string) error {
 	return nil
 }
 
-func (p *PostgresPlayerStore) GetLeague() []Player {
-	return []Player{{}}
+func (p *PostgresPlayerStore) GetLeague() ([]Player, error) {
+	rows, err := p.Conn.Query(context.Background(), `
+		SELECT p.name, s.score 
+		FROM players p
+		JOIN scores s ON p.id = s.player_id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var league []Player
+
+	for rows.Next() {
+		var name string
+		var score int
+
+		err = rows.Scan(&name, &score)
+		if err != nil {
+			return nil, err
+		}
+
+		league = append(league, Player{name, score})
+	}
+
+	return league, nil
 }
 
 var ErrEnvMissing = errors.New("env variables are missing")

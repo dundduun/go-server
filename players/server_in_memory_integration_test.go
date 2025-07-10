@@ -15,7 +15,7 @@ func TestInMemoryWinRecordingAndRetrieving(t *testing.T) {
 		svr.ServeHTTP(httptest.NewRecorder(), newPostWinRequest(player))
 	}
 
-	t.Run("get player's score", func(t *testing.T) {
+	t.Run("get player score", func(t *testing.T) {
 		res := httptest.NewRecorder()
 		svr.ServeHTTP(res, newGetScoreRequest(player))
 
