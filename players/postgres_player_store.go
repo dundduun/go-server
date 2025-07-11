@@ -83,6 +83,7 @@ func (p *PostgresPlayerStore) RecordWin(name string) error {
 	return nil
 }
 
+// GetLeague returns table of all players and it's scores.
 func (p *PostgresPlayerStore) GetLeague() ([]Player, error) {
 	rows, err := p.Conn.Query(context.Background(), `
 		SELECT p.name, s.score 
