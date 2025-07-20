@@ -1,15 +1,18 @@
 package players
 
+import "sync"
+
 func NewInMemoryPlayerStore() *InMemoryPlayerStore {
-	return &InMemoryPlayerStore{map[string]int{}}
+	return &InMemoryPlayerStore{Scores: map[string]int{}}
 }
 
 type InMemoryPlayerStore struct {
-	scores map[string]int
+	Scores map[string]int
+	mu     sync.Mutex
 }
 
 func (i *InMemoryPlayerStore) GetPlayerScore(name string) (int, error) {
-	score, ok := i.scores[name]
+	score, ok := i.Scores[name]
 
 	if !ok {
 		return 0, ErrPlayerNotFound
@@ -19,7 +22,9 @@ func (i *InMemoryPlayerStore) GetPlayerScore(name string) (int, error) {
 }
 
 func (i *InMemoryPlayerStore) RecordWin(name string) error {
-	i.scores[name]++
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	i.Scores[name]++
 
 	return nil
 }
