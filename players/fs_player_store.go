@@ -16,3 +16,18 @@ func (f *FSPlayerStore) GetLeague() ([]Player, error) {
 
 	return NewLeague(f.Data)
 }
+
+func (f *FSPlayerStore) GetPlayerScore(name string) (int, error) {
+	league, err := f.GetLeague()
+	if err != nil {
+		return 0, err
+	}
+
+	for _, player := range league {
+		if player.Name == name {
+			return player.Score, nil
+		}
+	}
+
+	return 0, ErrPlayerNotFound
+}

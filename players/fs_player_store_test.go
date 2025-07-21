@@ -7,22 +7,31 @@ import (
 
 func TestFSStore(t *testing.T) {
 	data := strings.NewReader(`[
-		{"Name": "Cleo", "Score": 11},
-		{"Name": "Patric", "Score": 25}
-	]`)
+			{"Name": "Cleo", "Score": 11},
+			{"Name": "Patric", "Score": 25}
+		]`)
 	store := FSPlayerStore{data}
 
-	want := []Player{
-		{"Cleo", 11},
-		{"Patric", 25},
-	}
+	t.Run("get league", func(t *testing.T) {
+		want := []Player{
+			{"Cleo", 11},
+			{"Patric", 25},
+		}
 
-	got, err := store.GetLeague()
-	assertNoErr(t, err)
+		got, err := store.GetLeague()
+		assertNoErr(t, err)
+		assertLeague(t, got, want)
 
-	assertLeague(t, got, want)
+		got, err = store.GetLeague()
+		assertNoErr(t, err)
+		assertLeague(t, got, want)
+	})
 
-	got, err = store.GetLeague()
-	assertNoErr(t, err)
-	assertLeague(t, got, want)
+	t.Run("get player score", func(t *testing.T) {
+		got, err := store.GetPlayerScore("Patric")
+		assertNoErr(t, err)
+
+		want := 25
+		assertPlayerScore(t, got, want)
+	})
 }
