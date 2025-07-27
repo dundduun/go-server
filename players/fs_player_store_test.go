@@ -16,8 +16,12 @@ func TestFSPlayerStore(t *testing.T) {
 		{"Albert", 40},
 		{"Sergey", 57},
 	}
-	
+
 	got, err := store.GetLeague()
+	assertNoErr(t, err)
+	assertLeague(t, got, want)
+
+	got, err = store.GetLeague()
 	assertNoErr(t, err)
 	assertLeague(t, got, want)
 }
