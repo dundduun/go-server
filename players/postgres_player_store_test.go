@@ -179,7 +179,7 @@ func assertNoErr(t testing.TB, err error) {
 	t.Helper()
 
 	if err != nil {
-		t.Fatalf("got unexpected error: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 }
 
